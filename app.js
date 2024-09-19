@@ -1,106 +1,120 @@
 const readline = require('readline');
 
-// Define the questions and answers about Limpopo province
-let questions = [
-    { question: "What is the capital city of Limpopo province?", answer: "Polokwane" },
-    { question: "Which river forms the northern and western borders of Limpopo province?", answer: "Limpopo River" },
-    { question: "Name one of the main ethnic groups in Limpopo province.", answer: "Pedi" },
-    { question: "What is the name of the UNESCO World Heritage site located in Limpopo province?", answer: "Mapungubwe National Park" },
-    { question: "Which famous music festival is held in Limpopo province?", answer: "Oppikoppi" },
-    { question: "What is the primary language spoken in Limpopo province?", answer: "Pedi" },
-    { question: "Which mountain range in Limpopo is known for its ancient geological formations?", answer: "Waterberg Mountains" },
-    { question: "What type of climate is found in the northern part of Limpopo province?", answer: "Hot, subtropical climate" },
-    { question: "Which major national park is part of the Great Limpopo Transfrontier Park?", answer: "Kruger National Park" },
-    { question: "What is the main economic activity in rural areas of Limpopo province?", answer: "Subsistence farming" }
+// Create an interface for reading input
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+// Questions for the quiz about Limpopo Province
+const questions = [
+  {
+    question: 'What is the capital city of Limpopo Province?',
+    options: ['1) Polokwane', '2) Thohoyandou', '3) Lephalale', '4) Makhado'],
+    answer: 1 // Polokwane
+  },
+  {
+    question: 'Which river forms part of the border between Limpopo and Zimbabwe?',
+    options: ['1) Limpopo River', '2) Zambezi River', '3) Vaal River', '4) Olifants River'],
+    answer: 1 // Limpopo River
+  },
+  {
+    question: 'Which national park is located in Limpopo Province?',
+    options: ['1) Kruger National Park', '2) Addo Elephant National Park', '3) Pilanesberg National Park', '4) Limpopo National Park'],
+    answer: 4 // Limpopo National Park
+  },
+  {
+    question: 'What is the main language spoken in Limpopo Province?',
+    options: ['1) Afrikaans', '2) Zulu', '3) Sepedi', '4) Xhosa'],
+    answer: 3 // Sepedi
+  },
+  {
+    question: 'Limpopo Province is known for which type of agriculture?',
+    options: ['1) Wine production', '2) Citrus farming', '3) Wheat farming', '4) Sugarcane'],
+    answer: 2 // Citrus farming
+  }
 ];
 
-// Initialize score and question index
-let score = 0;
+// Constants
+const QUIZ_DURATION = 30000; // 30 seconds total quiz time
+const QUESTION_DURATION = 10000; // 10 seconds per question
+
 let currentQuestionIndex = 0;
-let totalTime = 180; // Total quiz time in seconds (3 minutes)
-let questionTime = 10; // Time per question in seconds
-let rl;
-
-// Function to start the quiz
-function startQuiz() {
-    console.log("Quiz started!");
-
-    rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
-    // Timer for the total quiz duration
-    let quizTimer = setInterval(() => {
-        totalTime--;
-        console.log(`Total time remaining: ${totalTime}s`);
-
-        // End the quiz if time runs out
-        if (totalTime <= 0) {
-            clearInterval(quizTimer);
-            endQuiz();
-        }
-    }, 1000);
-
-    // Ask the first question
-    askQuestion();
-}
+let score = 0;
+let quizStartTime;
+let quizTimer;
 
 // Function to ask a question
 function askQuestion() {
-    // End the quiz if all questions are answered
-    if (currentQuestionIndex >= questions.length) {
-        endQuiz();
-        return;
+  if (currentQuestionIndex >= questions.length) {
+    endQuiz();
+    return;
+  }
+
+  const question = questions[currentQuestionIndex];
+  console.log(`\n${question.question}`);
+  question.options.forEach(option => console.log(option));
+
+  let timeLeft = QUESTION_DURATION / 1000;
+  let questionAnswered = false;
+
+  // Timer to show remaining time for the question
+  const questionInterval = setInterval(() => {
+    if (!questionAnswered) {
+      process.stdout.write(`\rTime remaining for this question: ${timeLeft} seconds`);
+      timeLeft--;
     }
 
-    let question = questions[currentQuestionIndex];
-    console.log(`Question: ${question.question}`);
-
-    // Timer for the current question
-    let questionTimer = setInterval(() => {
-        questionTime--;
-        console.log(`Time remaining for this question: ${questionTime}s`);
-
-        // Move to the next question if time runs out
-        if (questionTime <= 0) {
-            clearInterval(questionTimer);
-            currentQuestionIndex++;
-            questionTime = 10; // Reset question time
-            askQuestion();
-        }
-    }, 1000);
-
-    // Handle user input asynchronously
-    rl.question("Your answer: ", (answer) => {
-        clearInterval(questionTimer);
-        questionTime = 10; // Reset question time
-
-        // Error handling for empty input
-        if (!answer.trim()) {
-            console.log("Invalid input. Skipping question.");
-        } else {
-            // Check if the answer is correct
-            if (answer.toLowerCase() === question.answer.toLowerCase()) {
-                score++;
-            }
-        }
-
-        // Move to the next question
+    if (timeLeft < 0) {
+      clearInterval(questionInterval);
+      if (!questionAnswered) {
+        console.log('\nTime is up for this question!');
         currentQuestionIndex++;
         askQuestion();
-    });
+      }
+    }
+  }, 1000);
+
+  // Handle user input asynchronously
+  rl.question('\nYour answer (number): ', answer => {
+    if (!questionAnswered) {
+      questionAnswered = true;
+      clearInterval(questionInterval); // Clear the question interval
+
+      if (parseInt(answer) === question.answer) {
+        console.log('Correct!');
+        score++;
+      } else {
+        console.log('Wrong!');
+      }
+
+      currentQuestionIndex++;
+      askQuestion();
+    }
+  });
 }
 
-// Function to end the quiz
+// Function to start the quiz
+function startQuiz() {
+  quizStartTime = Date.now();
+
+  console.log('Quiz started!');
+  askQuestion();
+
+  // Timer for the total quiz duration
+  quizTimer = setTimeout(() => {
+    console.log('\nQuiz time is up!');
+    endQuiz();
+  }, QUIZ_DURATION);
+}
+
+// Function to end the quiz and exit the program
 function endQuiz() {
-    console.log("Quiz ended!");
-    console.log(`Your final score is: ${score}`);
-    rl.close();
-    process.exit();
+  console.log('\nQuiz finished!');
+  console.log(`Your final score is: ${score}`);
+  rl.close();
+  process.exit(0); // Exit the program
 }
 
 // Start the quiz
 startQuiz();
-
-
